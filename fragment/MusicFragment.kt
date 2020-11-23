@@ -13,6 +13,7 @@ import com.example.music_app.MainActivity
 import com.example.music_app.R
 import com.example.music_app.musicList
 import com.example.music_app.services.MusicService
+import org.w3c.dom.Text
 import java.lang.Exception
 import kotlin.concurrent.thread
 
@@ -27,6 +28,12 @@ class MusicFragment(var musicIx: Int):Fragment() {
 
     private lateinit var thisView:View
 
+    lateinit var seekBar : SeekBar
+
+    lateinit var time : TextView
+
+    lateinit var lrcTxt : TextView
+
 
     /**
      * 初始化与碎片关联的活动
@@ -35,6 +42,10 @@ class MusicFragment(var musicIx: Int):Fragment() {
         if(activity != null){
             mainActivity = activity as MainActivity
         }
+
+        seekBar = thisView.findViewById(R.id.seekBar)
+        time = thisView.findViewById(R.id.time)
+        lrcTxt = thisView.findViewById(R.id.lrcTxt)
     }
 
 
@@ -55,6 +66,8 @@ class MusicFragment(var musicIx: Int):Fragment() {
 
         return thisView
     }
+
+
 
 
     /**
@@ -88,15 +101,21 @@ class MusicFragment(var musicIx: Int):Fragment() {
     }
 
 
+    /**
+     * 实时向主线程发送刷新歌曲播放进度条的消息，从而更新UI
+     */
     fun reflushProgress(){
         thread {
             while(mainActivity.musicPlayBinder.mediaPlayer.isPlaying){
+
                 sleep(MusicService.MusicPlayBinder.reflushTime)
+
                 val msg = Message.obtain()
                 msg.what = mainActivity.updateProgress
 //                Log.e("progress->${Thread.currentThread().id}","${thisView.findViewById<SeekBar>(R.id.seekBar).progress}")
                 mainActivity.handler.sendMessage(msg)
             }
+
             thisView.findViewById<ImageView>(R.id.play).setImageResource(R.drawable.stop)
         }
     }
@@ -108,7 +127,9 @@ class MusicFragment(var musicIx: Int):Fragment() {
      * @param view 本碎片的视图
      */
     private fun configPregressBar(){
+
         val duration = mainActivity.musicPlayBinder.mediaPlayer.duration
+
         thisView.findViewById<TextView>(R.id.duration).text = "%02d:%02d".format(duration/1000/60,(duration/1000)%60)
         thisView.findViewById<SeekBar>(R.id.seekBar).max = duration
         thisView.findViewById<SeekBar>(R.id.seekBar).progress = 0
@@ -120,6 +141,7 @@ class MusicFragment(var musicIx: Int):Fragment() {
      * @param view 本碎片的视图
      */
     private fun configMusicSwitchBtn(){
+
         val precious = thisView.findViewById<ImageView>(R.id.precious)
         val next = thisView.findViewById<ImageView>(R.id.next)
 
@@ -132,6 +154,8 @@ class MusicFragment(var musicIx: Int):Fragment() {
             }
         }
 
+
+
         next.setOnClickListener{
             if(musicIx<musicList.size){
                 mainActivity.musicPlayBinder.nextMusic()
@@ -140,5 +164,7 @@ class MusicFragment(var musicIx: Int):Fragment() {
                 Toast.makeText(context,"这是已经是一首歌曲",Toast.LENGTH_SHORT).show()
             }
         }
+
+
     }
 }

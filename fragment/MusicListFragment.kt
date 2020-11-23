@@ -28,17 +28,37 @@ class MusicListFragment(val musicList:List<Music>):Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view =  inflater.inflate(R.layout.music_list_fragment,container,false)
+
+        configRecycleListView(view)
+        configBottomNavigation(view)
+
+        return view
+    }
+
+
+
+    /*配置显示音乐列表的ListView*/
+    private fun configRecycleListView(view: View){
         val musicListView = view.findViewById<RecyclerView>(R.id.musicListView)
         musicListView.layoutManager = LinearLayoutManager(context)
         val adapter = MusicRecycleViewAdapter(musicList)
         musicListView.adapter = adapter
         adapter.notifyDataSetChanged()
+    }
 
+
+
+    /**
+     * 配置底部导航栏
+     */
+    private fun configBottomNavigation(view: View){
         if(activity != null){
             val bottomNavigationView = view.findViewById<BottomNavigationView>(R.id.bottomNavigationView)
             val mainActivity = activity as MainActivity
             val drawerLayout = mainActivity.findViewById<DrawerLayout>(R.id.drawerLayout)
             bottomNavigationView.itemIconTintList = null
+
+            /**创建选择之后的监听器*/
             bottomNavigationView.setOnNavigationItemSelectedListener {
                 when(it.itemId){
                     R.id.homePageItem-> Toast.makeText(mainActivity,"你已处于首页", Toast.LENGTH_SHORT).show()
@@ -49,8 +69,8 @@ class MusicListFragment(val musicList:List<Music>):Fragment() {
                 true
             }
         }
-
-        return view
     }
+
+
 
 }

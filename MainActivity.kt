@@ -39,6 +39,8 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var musicPlayBinder: MusicService.MusicPlayBinder
 
+    lateinit var myBroadcastReceiver : MusicSwitchBroacast
+
 
     val updateProgress = 0x123
 
@@ -46,7 +48,7 @@ class MainActivity : AppCompatActivity() {
 
 
     /**
-     * 消息处理器，用来处理UI更新
+     * 消息处理器，用来处理进度条更新和歌词更新
      */
     val handler = object : Handler(){
 
@@ -54,16 +56,40 @@ class MainActivity : AppCompatActivity() {
             when(msg.what){
                 updateProgress -> {
 //                    Log.e("main -> ","${seekBar.progress}")
-                    musicFragment.seekBar.progress = musicPlayBinder.mediaPlayer.currentPosition
+                    val currPos = musicPlayBinder.mediaPlayer.currentPosition
+                    musicFragment.seekBar.progress = currPos
+
+                    /*更新歌词*/
+                    musicPlayBinder.lrcInfo.infos?.let {
+                        val lrcTxt = it.get(currPos/1000)
+                        if(lrcTxt!=null && !lrcTxt.equals(musicFragment.lrcTxt.text)){
+                            musicFragment.lrcTxt.text = lrcTxt
+//                            Log.e("MainActivity#handleMessage -> ", "${lrcTxt}")
+                        }
+                    }
+
+                    /*更新时间*/
                     val timeTmp = musicFragment.seekBar.progress/1000
-                    if(musicFragment.time!=null )
+                    if(musicFragment.time!=null ){
                         musicFragment.time.text = "%02d:%02d".format(timeTmp/60,timeTmp%60)
+                    }
+
+
                 }
             }
         }
     }
 
+
+
+
+    /**
+     * service 连接，定义了连接后的处理事件，包括初始化音乐播放处理的Binder以及
+     * 新建一个音乐播放的碎片musicFragment，然后将它推到主页面
+     */
     private val connection = object : ServiceConnection{
+
+
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             musicPlayBinder = service as MusicService.MusicPlayBinder
             musicPlayBinder.init(musicList,selectMusicIx,assets)
@@ -74,6 +100,7 @@ class MainActivity : AppCompatActivity() {
             musicFragment = MusicFragment(selectMusicIx)
             replaceFragment(R.id.mainFrag,musicFragment,true)
         }
+
 
         override fun onServiceDisconnected(name: ComponentName?) {
             TODO("Not yet implemented")
@@ -89,15 +116,58 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Log.e("MainActivity ->","${this} onCreate()")
         setContentView(R.layout.activity_main)
+
+        replaceFragment(R.id.mainFrag, CoverFragment(), false)
+
         initMusic()
 
+        configToolbar()
 
-        //配置toolbar
+        configNavigationView()
+
+        configBroadcastReceiver()
+    }
+
+
+
+    /**
+     * 初始化音乐数据，包括实例化音乐列表碎片musicListFragment和musicList
+     */
+    private fun initMusic(){
+
+        val musicNames = resources.getStringArray(R.array.music)
+        val musicAuthors = resources.getStringArray(R.array.singer)
+        val musicImages = resources.obtainTypedArray(R.array.music_picture)
+        val music_res = resources.getStringArray(R.array.music_lyrics)
+
+        for(i in musicNames.indices){
+            musicList.add(Music(musicNames[i],musicAuthors[i],musicImages.getResourceId(i,R.drawable.music),music_res[i]))
+        }
+
+        musicListFragment = MusicListFragment(musicList)
+
+    }
+
+
+
+    /**
+     * 配置toolbar
+     */
+    private fun configToolbar(){
         setSupportActionBar(toolbar)
         supportActionBar?.let {
             it.setHomeAsUpIndicator(R.drawable.home)
             it.setDisplayHomeAsUpEnabled(true)
         }
+    }
+
+
+
+
+    /**
+     * 配置侧边栏
+     */
+    private fun configNavigationView(){
 
         navigationView.setNavigationItemSelectedListener {
             when(it.itemId){
@@ -110,9 +180,41 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        replaceFragment(R.id.mainFrag, CoverFragment(), false)
-        configBroadcastReceiver()
+
     }
+
+
+    /**
+     * 注册广播,监听通知栏中的点击事件
+     */
+    private fun configBroadcastReceiver(){
+        myBroadcastReceiver = MusicSwitchBroacast(this)
+        val intentFilter = IntentFilter(MusicSwitchBroacast.START_MUSIC)
+        intentFilter.addAction(MusicSwitchBroacast.STOP_MUSIC)
+        intentFilter.addAction(MusicSwitchBroacast.PRECIOUS_MUSIC)
+        intentFilter.addAction(MusicSwitchBroacast.NEXT_MUSIC)
+
+        registerReceiver(myBroadcastReceiver,intentFilter)
+    }
+
+
+    /**
+     * 替换主布局文件中的FrameLayout，实现页面的动态加载功能
+     *
+     * @param fragmentId 需要被替换FrameLayout的id
+     * @param fragment 已经加载了需要被显示的布局文件的Fragment类
+     * @param push 是否将操作加入返回栈
+     */
+    fun replaceFragment(fragmentId:Int, fragment: Fragment, push:Boolean){
+        val transition = supportFragmentManager.beginTransaction()
+        transition.replace(fragmentId,fragment)
+
+        /*是否将这次的操作加入栈中*/
+        if(push)
+            transition.addToBackStack(null)
+        transition.commit()
+    }
+
 
 
 //    override fun onDestroy() {
@@ -155,25 +257,6 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-
-
-
-    /**
-     * 替换主布局文件中的FrameLayout，实现页面的动态加载功能
-     *
-     * @param fragmentId 需要被替换FrameLayout的id
-     * @param fragment 已经加载了需要被显示的布局文件的Fragment类
-     * @param push 是否将操作加入返回栈
-     */
-    fun replaceFragment(fragmentId:Int, fragment: Fragment, push:Boolean){
-        val transition = supportFragmentManager.beginTransaction()
-        transition.replace(fragmentId,fragment)
-
-        /*是否将这次的操作加入栈中*/
-        if(push)
-            transition.addToBackStack(null)
-        transition.commit()
-    }
 
 
 
@@ -245,32 +328,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    /**
-     * 初始化音乐数据
-     */
-    private fun initMusic(){
-
-        val musicNames = resources.getStringArray(R.array.music)
-        val musicAuthors = resources.getStringArray(R.array.singer)
-        val musicImages = resources.obtainTypedArray(R.array.music_picture)
-        val music_res = resources.getStringArray(R.array.music_lyrics)
-
-        for(i in musicNames.indices){
-            musicList.add(Music(musicNames[i],musicAuthors[i],musicImages.getResourceId(i,R.drawable.music),music_res[i]))
-        }
-
-        musicListFragment = MusicListFragment(musicList)
-    }
-
-    private fun configBroadcastReceiver(){
-        val myBroadcastReceiver = MusicSwitchBroacast(this)
-        val intentFilter = IntentFilter(MusicSwitchBroacast.START_MUSIC)
-        intentFilter.addAction(MusicSwitchBroacast.STOP_MUSIC)
-        intentFilter.addAction(MusicSwitchBroacast.PRECIOUS_MUSIC)
-        intentFilter.addAction(MusicSwitchBroacast.NEXT_MUSIC)
-
-        registerReceiver(myBroadcastReceiver,intentFilter)
-    }
 
 
     /**
