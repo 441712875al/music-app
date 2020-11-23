@@ -29,6 +29,7 @@ class MusicService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.e("MusicService -> ","onCreate()")
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val remoteViews = RemoteViews(packageName, R.layout.music_notification)
 
@@ -69,6 +70,11 @@ class MusicService : Service() {
         musicPlayBinder = MusicPlayBinder(manager,notification)
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.e("MusicService ->","onDestroy()")
+    }
+
 
     class MusicPlayBinder(val notificationManager: NotificationManager,
     val notification: Notification) : Binder(){
@@ -77,7 +83,7 @@ class MusicService : Service() {
 
         companion object{
             @JvmStatic
-            var reflushTime = 1L
+            var reflushTime = 10L
             @JvmStatic
             val notificationID = 1000
         }
@@ -115,7 +121,6 @@ class MusicService : Service() {
             remoteViews.setTextViewText(R.id.notifyMusicName,musicList[musicIx].name)
             remoteViews.setTextViewText(R.id.notifyMusicAuthor,musicList[musicIx].author)
             remoteViews.setImageViewResource(R.id.notifyCover,musicList[musicIx].imageId)
-            Log.e("MusicPlayBinder->","我已被设置")
             notificationManager.notify(notificationID,notification)
         }
 

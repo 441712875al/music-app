@@ -83,12 +83,17 @@ class MainActivity : AppCompatActivity() {
 
         override fun onServiceDisconnected(name: ComponentName?) {
             TODO("Not yet implemented")
+            Log.e("MusicService->","onServiceDisconnected()")
         }
 
     }
 
+
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.e("MainActivity ->","${this} onCreate()")
         setContentView(R.layout.activity_main)
         initMusic()
         //配置toolbar
@@ -113,6 +118,17 @@ class MainActivity : AppCompatActivity() {
         replaceFragment(R.id.mainFrag, CoverFragment(), false)
         configBroadcastReceiver()
     }
+
+
+//    override fun onDestroy() {
+//        super.onDestroy()
+//
+//        musicPlayBinder.stopPlay()
+//        val intent = Intent(this,MusicService::class.java)
+//        unbindService(connection)
+//        stopService(intent)
+//        Log.e("MainActivity ->","onDestroy()")
+//    }
 
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -170,6 +186,8 @@ class MainActivity : AppCompatActivity() {
                     val intent = Intent(this, MusicService::class.java)
                     selectMusicIx = position
                     if(this::musicFragment.isInitialized){
+                        musicPlayBinder.stopPlay()
+                        sleep(MusicService.MusicPlayBinder.reflushTime)
                         unbindService(connection)
                         stopService(intent)
                     }
