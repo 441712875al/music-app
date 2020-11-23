@@ -7,7 +7,16 @@ import android.widget.ImageView
 import com.example.music_app.MainActivity
 import com.example.music_app.R
 
+
+/**
+ * 处理歌曲切换和开始暂停的标准广播
+ * @author along
+ * @param activity 主活动
+ */
 class MusicSwitchBroacast(val activity: MainActivity):BroadcastReceiver() {
+    /**
+     * action
+     */
     companion object{
         @JvmStatic
         val START_MUSIC = "com.example.music_app.START_MUSIC"
@@ -16,6 +25,10 @@ class MusicSwitchBroacast(val activity: MainActivity):BroadcastReceiver() {
         val PRECIOUS_MUSIC = "com.example.music_app.PRECIOUS_MUSIC"
     }
 
+    /**
+     * @param context
+     * @param intent
+     */
     override fun onReceive(context: Context?, intent: Intent?) {
         when(intent?.action){
             START_MUSIC -> activity.musicFragment.view?.findViewById<ImageView>(R.id.play)

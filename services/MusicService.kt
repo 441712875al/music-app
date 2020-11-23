@@ -83,7 +83,7 @@ class MusicService : Service() {
 
         companion object{
             @JvmStatic
-            var reflushTime = 10L
+            var reflushTime = 1L
             @JvmStatic
             val notificationID = 1000
         }

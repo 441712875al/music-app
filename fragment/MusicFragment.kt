@@ -11,6 +11,7 @@ import android.widget.*
 import androidx.fragment.app.Fragment
 import com.example.music_app.MainActivity
 import com.example.music_app.R
+import com.example.music_app.musicList
 import com.example.music_app.services.MusicService
 import java.lang.Exception
 import kotlin.concurrent.thread
@@ -43,9 +44,15 @@ class MusicFragment(var musicIx: Int):Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         thisView = inflater.inflate(R.layout.music_frag,container,false)
+        /*当活动被创建时初始化碎片需要的属性参数*/
         init()
+
+        /*加载音乐*/
         loadMusic(musicIx)
+
+        /*配置下控制音乐播放的按钮*/
         configMusicSwitchBtn()
+
         return thisView
     }
 
@@ -56,27 +63,36 @@ class MusicFragment(var musicIx: Int):Fragment() {
      */
     fun loadMusic(toReflushMusicIx: Int){
 
-
         musicIx = toReflushMusicIx
-        val music = mainActivity.musicList[musicIx]
+        val music = musicList[musicIx]
+
+        /*重新设置音乐显示的相关控件*/
         thisView.apply {
             findViewById<ImageView>(R.id.music_cover).setImageResource(music.imageId)
             findViewById<TextView>(R.id.music_name).text = music.name
             findViewById<TextView>(R.id.music_author).text = music.author
+            findViewById<ImageView>(R.id.play).setImageResource(R.drawable.start)
         }
 
 
-
+        /*开始准备播放*/
         mainActivity.musicPlayBinder.preparePlay()
+        /*配置进度条的属性*/
         configPregressBar()
-        thisView.findViewById<ImageView>(R.id.play).setImageResource(R.drawable.start)
+        /*开始播放*/
         mainActivity.musicPlayBinder.startPlay()
-        val seekBar = thisView.findViewById<SeekBar>(R.id.seekBar)
+
+        /*实时刷新进度条*/
+        reflushProgress()
+
+    }
+
+
+    fun reflushProgress(){
         thread {
             while(mainActivity.musicPlayBinder.mediaPlayer.isPlaying){
                 sleep(MusicService.MusicPlayBinder.reflushTime)
                 val msg = Message.obtain()
-                msg.obj = seekBar
                 msg.what = mainActivity.updateProgress
 //                Log.e("progress->${Thread.currentThread().id}","${thisView.findViewById<SeekBar>(R.id.seekBar).progress}")
                 mainActivity.handler.sendMessage(msg)
@@ -117,7 +133,7 @@ class MusicFragment(var musicIx: Int):Fragment() {
         }
 
         next.setOnClickListener{
-            if(musicIx<mainActivity.musicList.size){
+            if(musicIx<musicList.size){
                 mainActivity.musicPlayBinder.nextMusic()
                 loadMusic(++musicIx)
             }else{

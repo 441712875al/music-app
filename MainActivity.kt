@@ -26,6 +26,7 @@ import com.example.music_app.services.MusicService
 import com.google.android.material.snackbar.Snackbar
 import de.hdodenhof.circleimageview.CircleImageView
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.music_frag.*
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -38,32 +39,25 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var musicPlayBinder: MusicService.MusicPlayBinder
 
-    private val mainActivity = this
-
-    val musicList = ArrayList<Music>()
 
     val updateProgress = 0x123
 
     private var selectMusicIx = 0
-
-    //进度条刷新周期
-
 
 
     /**
      * 消息处理器，用来处理UI更新
      */
     val handler = object : Handler(){
+
         override fun handleMessage(msg: Message) {
-            val seekBar = msg.obj as SeekBar
             when(msg.what){
                 updateProgress -> {
 //                    Log.e("main -> ","${seekBar.progress}")
-                    seekBar.progress += MusicService.MusicPlayBinder.reflushTime.toInt()
-                    val time = mainFrag.findViewById<TextView>(R.id.time)
-                    val timeTmp = seekBar.progress/1000
-                    if(time!=null )
-                        time.text = "%02d:%02d".format(timeTmp/60,timeTmp%60)
+                    musicFragment.seekBar.progress = musicPlayBinder.mediaPlayer.currentPosition
+                    val timeTmp = musicFragment.seekBar.progress/1000
+                    if(musicFragment.time!=null )
+                        musicFragment.time.text = "%02d:%02d".format(timeTmp/60,timeTmp%60)
                 }
             }
         }
@@ -96,8 +90,9 @@ class MainActivity : AppCompatActivity() {
         Log.e("MainActivity ->","${this} onCreate()")
         setContentView(R.layout.activity_main)
         initMusic()
-        //配置toolbar
 
+
+        //配置toolbar
         setSupportActionBar(toolbar)
         supportActionBar?.let {
             it.setHomeAsUpIndicator(R.drawable.home)
@@ -131,12 +126,21 @@ class MainActivity : AppCompatActivity() {
 //    }
 
 
+    /**
+     * 创建主菜单
+     * @param menu
+     */
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu_main,menu)
         return true
     }
 
 
+
+    /**
+     * 主菜单选择处理方法
+     * @param item 选择的项
+     */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(item.itemId){
             R.id.aboutItem -> Snackbar.make(drawerLayout,"关于信息正在建设",Snackbar.LENGTH_SHORT).show()
@@ -152,16 +156,20 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+
+
     /**
      * 替换主布局文件中的FrameLayout，实现页面的动态加载功能
      *
      * @param fragmentId 需要被替换FrameLayout的id
      * @param fragment 已经加载了需要被显示的布局文件的Fragment类
+     * @param push 是否将操作加入返回栈
      */
-
     fun replaceFragment(fragmentId:Int, fragment: Fragment, push:Boolean){
         val transition = supportFragmentManager.beginTransaction()
         transition.replace(fragmentId,fragment)
+
+        /*是否将这次的操作加入栈中*/
         if(push)
             transition.addToBackStack(null)
         transition.commit()
@@ -180,17 +188,23 @@ class MainActivity : AppCompatActivity() {
                 replaceFragment(R.id.mainFrag,musicListFragment,false)
             }
 
+
             R.id.music_item ->{
                 musicListFragment.view?.let{
-                    val position = it.findViewById<RecyclerView>(R.id.musicListView).getChildLayoutPosition(v)
-                    val intent = Intent(this, MusicService::class.java)
-                    selectMusicIx = position
                     if(this::musicFragment.isInitialized){
+                        /*停止上一首歌曲播放*/
                         musicPlayBinder.stopPlay()
                         sleep(MusicService.MusicPlayBinder.reflushTime)
+
                         unbindService(connection)
                         stopService(intent)
                     }
+
+                    val position = it.findViewById<RecyclerView>(R.id.musicListView).getChildLayoutPosition(v)
+                    val intent = Intent(this, MusicService::class.java)
+                    /*更新selectMusicIx，在服务与活动连接时需要使用它渲染页面*/
+                    selectMusicIx = position
+                    /*开启并绑定服务*/
                     startService(intent)
                     bindService(intent,connection, Context.BIND_AUTO_CREATE)
                 }
@@ -199,23 +213,14 @@ class MainActivity : AppCompatActivity() {
             R.id.play ->{
                 if(!musicPlayBinder.mediaPlayer.isPlaying){
                     musicPlayBinder.startPlay()
-                    val seekBar = mainFrag.findViewById<SeekBar>(R.id.seekBar)
-                    thread {
-                        while(musicPlayBinder.mediaPlayer.isPlaying){
-                            sleep(MusicService.MusicPlayBinder.reflushTime)
-                            val msg = Message.obtain()
-                            msg.what = updateProgress
-                            msg.obj = seekBar
-                            handler.sendMessage(msg)
-                        }
-                    }
+                    musicFragment.reflushProgress()
                     v.findViewById<ImageView>(R.id.play).setImageResource(R.drawable.start)
-
                 }else{
                     musicPlayBinder.stopPlay()
                     v.findViewById<ImageView>(R.id.play).setImageResource(R.drawable.stop)
                 }
             }
+
 
             R.id.loveItem ->{
                 showMessage("已加入喜欢")
