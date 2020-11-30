@@ -108,7 +108,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
-
+    
 
 
 
@@ -246,11 +246,11 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(item.itemId){
             R.id.aboutItem -> Snackbar.make(drawerLayout,"关于信息正在建设",Snackbar.LENGTH_SHORT).show()
-            R.id.exitItem -> AlertDialog.Builder(this).apply {
-                setMessage("确认退出${resources.getString(R.string.app_name)}?")
-                setPositiveButton("确认"){dialog, which -> exitProcess(0)  }
-                setNegativeButton("取消"){dialog, which ->  }
-                show()
+                R.id.exitItem -> AlertDialog.Builder(this).apply {
+                    setMessage("确认退出${resources.getString(R.string.app_name)}?")
+                    setPositiveButton("确认"){dialog, which -> exitProcess(0)  }
+                    setNegativeButton("取消"){dialog, which ->  }
+                    show()
             }
             android.R.id.home -> drawerLayout!!.openDrawer(GravityCompat.START)
         }

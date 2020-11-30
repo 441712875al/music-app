@@ -133,6 +133,22 @@ class MusicFragment(var musicIx: Int):Fragment() {
         thisView.findViewById<TextView>(R.id.duration).text = "%02d:%02d".format(duration/1000/60,(duration/1000)%60)
         thisView.findViewById<SeekBar>(R.id.seekBar).max = duration
         thisView.findViewById<SeekBar>(R.id.seekBar).progress = 0
+
+        /*配置进度条拖动音乐随之改变*/
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener{
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+//                TODO("Not yet implemented")
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+//                TODO("Not yet implemented")
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                mainActivity.musicPlayBinder.mediaPlayer.seekTo(seekBar?.progress?:0)
+            }
+
+        })
     }
 
 
